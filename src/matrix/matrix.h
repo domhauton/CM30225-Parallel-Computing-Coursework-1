@@ -22,6 +22,8 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix);
 
 void Matrix_copyEdge(Matrix* source, Matrix* target);
 
+Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit);
+
 void Matrix_print(Matrix *matrix);
 
 void Matrix_destroy(Matrix *matrix);

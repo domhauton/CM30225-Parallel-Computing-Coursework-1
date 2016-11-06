@@ -10,12 +10,16 @@
 typedef struct matrixSmoother MatSmoother;
 
 MatSmoother *MatSmoother_init(MatIterator *target,
+                              MatIterator *srcCenter,
                               MatIterator *srcUp,
                               MatIterator *srcDown,
                               MatIterator *srcLeft,
-                              MatIterator *srcRight);
+                              MatIterator *srcRight,
+                              double diffLimit);
 
 void MatSmoother_smooth(MatSmoother *matSmoother);
+
+bool MatSmoother_exceedDiff(MatSmoother *matSmoother);
 
 void MatSmoother_destroy(MatSmoother *matSmoother);
 

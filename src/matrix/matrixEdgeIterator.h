@@ -15,8 +15,6 @@ double *MatEdgeIterator_next(MatEdgeIterator *edgeIterator);
 
 bool MatEdgeIterator_hasNext(MatEdgeIterator *edgeIterator);
 
-void MatEdgeIterator_forEach(MatEdgeIterator *matIterator1, void (*func)(void *func_data), void *func_data);
-
 void MatEdgeIterator_destroy(MatEdgeIterator *edgeIterator);
 
 #endif //PARALLEL_COMPUTATION_CW1_MATRIXEDGEITERATOR_H
