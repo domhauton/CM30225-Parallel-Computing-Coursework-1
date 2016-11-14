@@ -15,13 +15,10 @@ typedef struct matIterator {
     long areaWidth;
 } MatIterator;
 
-void calcNextRowJmp(MatIterator *matIterator) {
-    matIterator->rowEnd += matIterator->nextRowJump + matIterator->areaWidth - 1;
-}
-
 bool advanceRow(MatIterator *matIterator) {
     matIterator->currentPtr += matIterator->nextRowJump;
-    calcNextRowJmp(matIterator);
+    matIterator->rowEnd += matIterator->nextRowJump + matIterator->areaWidth;
+    printf("Jump!\n");
     return true;
 }
 
@@ -29,9 +26,9 @@ MatIterator *MatIterator_init(double *dataPtr, long fullWidth, long areaWidth, l
     MatIterator *matIterator = malloc(sizeof(MatIterator));
     matIterator->currentPtr = dataPtr - 1;
     matIterator->nextRowJump = fullWidth - areaWidth;
-    matIterator->areaEnd = matIterator->currentPtr + (fullWidth * areaHeight) + areaWidth + 1;
+    matIterator->areaEnd = matIterator->currentPtr + (fullWidth * (areaHeight - 1)) + areaWidth;
     matIterator->areaWidth = areaWidth;
-    calcNextRowJmp(matIterator);
+    matIterator->rowEnd = matIterator->currentPtr + matIterator->areaWidth;
     return matIterator;
 }
 
@@ -48,6 +45,10 @@ double *MatIterator_next(MatIterator *matIterator) {
 
 bool MatIterator_hasNext(MatIterator *matIterator) {
     return matIterator->currentPtr != matIterator->areaEnd;
+}
+
+void MatIterator_destroy(MatIterator *matIterator) {
+    free(matIterator);
 }
 
 

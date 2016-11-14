@@ -62,5 +62,11 @@ bool MatSmoother_exceedDiff(MatSmoother *matSmoother){
 };
 
 void MatSmoother_destroy(MatSmoother *matSmoother) {
+    MatIterator_destroy(matSmoother->srcCntr);
+    MatIterator_destroy(matSmoother->srcUp);
+    MatIterator_destroy(matSmoother->srcDown);
+    MatIterator_destroy(matSmoother->srcLeft);
+    MatIterator_destroy(matSmoother->srcRight);
+    MatIterator_destroy(matSmoother->target);
     free(matSmoother);
 }

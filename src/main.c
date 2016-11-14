@@ -4,7 +4,7 @@
 #include "matrix/matrix.h"
 #include "matrix/matrixFactory.h"
 
-int main() {
+void matrixComputeTest() {
     Matrix *matrix = MatrixFactory_initRandom(1000, 1000);
     Matrix *matrix2 = MatrixFactory_initEmpty(1000, 1000);
     //Matrix_print(matrix);
@@ -22,6 +22,21 @@ int main() {
     //Matrix_print(tmp);
     Matrix_destroy(matrix);
     Matrix_destroy(matrix2);
+}
+
+void matrixOverwriteTest() {
+    Matrix *matrix = MatrixFactory_initEmpty(7, 7);
+    MatIterator* matIterator = Matrix_getIterator(matrix, 1, 1, 1, 5);
+    while(MatIterator_hasNext(matIterator)) {
+        *MatIterator_next(matIterator) = 1.111111;
+    }
+    MatIterator_destroy(matIterator);
+    Matrix_print(matrix);
+    Matrix_destroy(matrix);
+}
+
+int main() {
+    matrixOverwriteTest();
     return 0;
 }
 

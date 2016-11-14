@@ -13,6 +13,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixFactory.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixEdgeIterator.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixIterator.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/worker/smoothTask.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/worker/smoothTask.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />

@@ -15,4 +15,6 @@ double *MatIterator_next(MatIterator *matIterator);
 
 bool MatIterator_hasNext(MatIterator *matIterator);
 
+void MatIterator_destroy(MatIterator *matIterator);
+
 #endif //PARALLEL_COMPUTATION_CW1_MATRIXSMOOTHER_H
