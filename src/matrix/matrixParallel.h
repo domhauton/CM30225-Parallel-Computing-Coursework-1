@@ -7,6 +7,6 @@
 
 #include "matrix.h"
 
-Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double limit);
+Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double limit, int threadCount);
 
 #endif //PARALLEL_COMPUTATION_CW1_MATRIXPARALLEL_H

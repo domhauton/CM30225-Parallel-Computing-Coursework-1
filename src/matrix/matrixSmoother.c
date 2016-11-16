@@ -45,10 +45,11 @@ MatSmoother *MatSmoother_split(MatSmoother *matSmoother1) {
     matSmoother2->srcRight = MatIterator_split(matSmoother1->srcRight);
     matSmoother2->diffLimit = matSmoother1->diffLimit;
     matSmoother2->overLimit = matSmoother1->overLimit;
+    return matSmoother2;
 }
 
 void MatSmoother_smoothIgnoreDiff(MatSmoother *matSmoother) {
-    while (MatIterator_hasNext(matSmoother->target)) {
+    while (MatIterator_hasNext(matSmoother->srcDown)) {
         *MatIterator_next(matSmoother->target) = (*MatIterator_next(matSmoother->srcUp) +
                                                   *MatIterator_next(matSmoother->srcDown) +
                                                   *MatIterator_next(matSmoother->srcLeft) +
@@ -57,7 +58,7 @@ void MatSmoother_smoothIgnoreDiff(MatSmoother *matSmoother) {
 }
 
 void MatSmoother_smooth(MatSmoother *matSmoother) {
-    while (!matSmoother->overLimit && MatIterator_hasNext(matSmoother->target)) {
+    while (!matSmoother->overLimit && MatIterator_hasNext(matSmoother->srcDown)) {
         double* currentResPtr = MatIterator_next(matSmoother->target);
         *currentResPtr = (*MatIterator_next(matSmoother->srcUp) +
                                                   *MatIterator_next(matSmoother->srcDown) +

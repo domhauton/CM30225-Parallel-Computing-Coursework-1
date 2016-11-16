@@ -73,7 +73,7 @@ Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit) {
         ctr++;
     } while (smoothDiffExceeded);
 
-    printf("Looped %d times!\n", ctr);
+    printf("%05li,", ctr);
 
     return resultFlipped ? source : target;
 }

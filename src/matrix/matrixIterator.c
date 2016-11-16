@@ -62,14 +62,16 @@ double *MatIterator_step(MatIterator *matIterator) {
 
 double *MatIterator_next(MatIterator *matIterator) {
     double* retPtr = MatIterator_step(matIterator);
-    for(int i = matIterator->itrStep; i > 1; i--) {
-        MatIterator_step(matIterator);
+    if(matIterator != NULL) {
+        for(int i = matIterator->itrStep; i > 1; i--) {
+            MatIterator_step(matIterator);
+        }
     }
     return retPtr;
 }
 
 bool MatIterator_hasNext(MatIterator *matIterator) {
-    return matIterator->currentPtr < matIterator->areaEnd;
+    return matIterator != NULL && matIterator->currentPtr < matIterator->areaEnd;
 }
 
 void MatIterator_destroy(MatIterator *matIterator) {
