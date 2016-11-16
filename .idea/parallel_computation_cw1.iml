@@ -4,15 +4,17 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/main.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixFactory.c" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixSmoother.c" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixIterator.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixEdgeIterator.c" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixIterator.c" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixEdgeIterator.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrix.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixSmoother.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixParallel.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixSmoother.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrix.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixFactory.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixEdgeIterator.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixSmoother.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixIterator.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/matrix/matrixParallel.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/worker/smoothTask.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/worker/smoothTask.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />

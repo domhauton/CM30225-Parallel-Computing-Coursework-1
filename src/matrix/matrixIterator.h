@@ -11,6 +11,8 @@ typedef struct matIterator MatIterator;
 
 MatIterator *MatIterator_init(double *dataPtr, long fullWidth, long areaWidth, long areaHeight);
 
+MatIterator *MatIterator_split(MatIterator* matIterator1);
+
 double *MatIterator_next(MatIterator *matIterator);
 
 bool MatIterator_hasNext(MatIterator *matIterator);

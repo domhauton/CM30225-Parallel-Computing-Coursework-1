@@ -19,6 +19,8 @@ MatSmoother *MatSmoother_init(MatIterator *target,
 
 void MatSmoother_smooth(MatSmoother *matSmoother);
 
+MatSmoother *MatSmoother_split(MatSmoother *matSmoother1);
+
 bool MatSmoother_exceedDiff(MatSmoother *matSmoother);
 
 void MatSmoother_destroy(MatSmoother *matSmoother);

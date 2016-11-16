@@ -7,6 +7,7 @@
 
 #include "matrixIterator.h"
 #include "matrixEdgeIterator.h"
+#include "matrixSmoother.h"
 
 typedef struct matrix Matrix;
 
@@ -22,9 +23,13 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix);
 
 void Matrix_copyEdge(Matrix* source, Matrix* target);
 
+MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit);
+
 Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit);
 
 void Matrix_print(Matrix *matrix);
+
+bool Matrix_equals(Matrix *matrix1, Matrix *matrix2);
 
 void Matrix_destroy(Matrix *matrix);
 

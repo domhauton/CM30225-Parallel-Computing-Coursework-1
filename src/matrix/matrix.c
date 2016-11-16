@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 #include "matrix.h"
 #include "matrixSmoother.h"
 
@@ -98,6 +99,23 @@ void Matrix_print(Matrix *matrix) {
         }
     }
 }
+
+bool Matrix_equals(Matrix *matrix1, Matrix *matrix2) {
+    if(matrix1->ySize == matrix2->ySize && matrix1->xSize == matrix2->xSize) {
+        bool match = true;
+        MatIterator *matIterator1 = Matrix_getIterator(matrix1, 0, 0, matrix1->xSize, matrix1->ySize);
+        MatIterator *matIterator2 = Matrix_getIterator(matrix2, 0, 0, matrix2->xSize, matrix2->ySize);
+        while(MatIterator_hasNext(matIterator1) && match) {
+            match = *MatIterator_next(matIterator1) == *MatIterator_next(matIterator2);
+        }
+        MatIterator_destroy(matIterator1);
+        MatIterator_destroy(matIterator2);
+        return match;
+    } else {
+        return false;
+    }
+}
+
 
 void Matrix_destroy(Matrix *matrix) {
     free(matrix->data);
