@@ -9,4 +9,11 @@
 
 Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double limit, int threadCount);
 
+Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, double limit, unsigned int threadCount);
+
+Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
+                                                 Matrix *target,
+                                                 double limit,
+                                                 unsigned int threadCount);
+
 #endif //PARALLEL_COMPUTATION_CW1_MATRIXPARALLEL_H

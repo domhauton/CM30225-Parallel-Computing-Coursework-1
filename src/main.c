@@ -74,16 +74,37 @@ void matrixCompareRegeneration(int size) {
 int main(int argc, char *argv[]) {
 
     if (argc == 4) {
-        int threads = atoi(argv[1]);
+        unsigned int threads = (unsigned int) atoi(argv[1]);
         int size = atoi(argv[2]);
         double precision = strtof(argv[3], NULL);
-        Benchmark_smoothUntilLimitBenchmark(size, precision, threads);
+        Benchmark_smoothUntilLimitPooledCut(size, precision, threads);
+    } else if (argc == 5) {
+        unsigned int threads = (unsigned int) atoi(argv[1]);
+        int size = atoi(argv[2]);
+        int type = atoi(argv[2]);
+        double precision = strtof(argv[3], NULL);
+        switch(type) {
+            case 1:
+                Benchmark_smoothUntilLimit(size, precision, threads);
+                break;
+            case 2:
+                Benchmark_smoothUntilLimitPooled(size, precision, threads);
+                break;
+            case 3:
+                Benchmark_smoothUntilLimitPooledCut(size, precision, threads);
+                break;
+            default:
+                Benchmark_serial(size, precision);
+        }
+        Benchmark_smoothUntilLimitPooledCut(size, precision, threads);
     } else {
-        printf("Ctr,Siz,Thr,Acc,Time\n");
-        double precision = 0.0001f;
-        for (int threads = 1; threads <= sysconf(_SC_NPROCESSORS_ONLN); threads++) {
-            for (int matrixSize = (2 << 3); matrixSize <= (2 << 6); matrixSize <<= 1) {
-                Benchmark_smoothUntilLimitBenchmark(matrixSize, precision, threads);
+        printf(" Ctr |Ty|Size |Thr|  Acc   |  Time\n");
+        double precision = 0.001f;
+        for (unsigned int threads = 1; threads <= sysconf(_SC_NPROCESSORS_ONLN); threads<<=1) {
+            for (int matrixSize = (2 << 5); matrixSize <= (2 << 7); matrixSize <<= 1) {
+                //Benchmark_smoothUntilLimit(matrixSize, precision, threads);
+                //Benchmark_smoothUntilLimitPooled(matrixSize, precision, threads);
+                Benchmark_smoothUntilLimitPooledCut(matrixSize, precision, threads);
             }
         }
     }

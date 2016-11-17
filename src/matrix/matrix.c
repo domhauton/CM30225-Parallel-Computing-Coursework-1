@@ -4,9 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
 #include "matrix.h"
-#include "matrixSmoother.h"
 
 typedef struct matrix {
     long xSize, ySize;
@@ -42,16 +40,50 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix) {
     return MatEdgeIterator_init(matrix->data, matrix->xSize, matrix->ySize);
 }
 
+MatSmoother *getSmoother(Matrix *source, Matrix *target, double limit, long x, long y, long xSize, long ySize) {
+    MatIterator *resItr = Matrix_getIterator(target, x, y, xSize, ySize);
+    MatIterator *ctrItr = Matrix_getIterator(source, x, y, xSize, ySize);
+    MatIterator *topItr = Matrix_getIterator(source, x - 1, y, xSize, ySize);
+    MatIterator *botItr = Matrix_getIterator(source, x + 1, y, xSize, ySize);
+    MatIterator *lftItr = Matrix_getIterator(source, x, y - 1, xSize, ySize);
+    MatIterator *rgtItr = Matrix_getIterator(source, x, y + 1, xSize, ySize);
+    return MatSmoother_init(resItr, ctrItr, topItr, botItr, lftItr, rgtItr, limit);
+}
+
 MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit) {
     long itrWidth = target->xSize - 2;
     long itrHeight = target->ySize - 2;
-    MatIterator *resItr = Matrix_getIterator(target, 1, 1, itrWidth, itrHeight);
-    MatIterator *ctrItr = Matrix_getIterator(source, 1, 1, itrWidth, itrHeight);
-    MatIterator *topItr = Matrix_getIterator(source, 0, 1, itrWidth, itrHeight);
-    MatIterator *botItr = Matrix_getIterator(source, 2, 1, itrWidth, itrHeight);
-    MatIterator *lftItr = Matrix_getIterator(source, 1, 0, itrWidth, itrHeight);
-    MatIterator *rgtItr = Matrix_getIterator(source, 1, 2, itrWidth, itrHeight);
-    return MatSmoother_init(resItr, ctrItr, topItr, botItr, lftItr, rgtItr, limit);
+    return getSmoother(source, target, limit, 1, 1, itrWidth, itrHeight);
+}
+
+void Matrix_getSmootherCut(Matrix *source,
+                           Matrix *target,
+                           double limit,
+                           unsigned int sections,
+                           MatSmoother** smoothers){
+    long smoothingHeight = target->ySize - 2;
+    // printf("Spliting %ld into %d\n", smoothingHeight, sections);
+    MatSmoother** tmpPtr = smoothers;
+    if(smoothingHeight <= sections) { // 1 Thread per row
+        for(int i = 1; i <= smoothingHeight; i++) {
+            *tmpPtr++ = getSmoother(source, target, limit, 1, i, target->xSize - 2, 1);
+        }
+    } else {
+        long sectionHeight = smoothingHeight / sections;
+        long longerSections = smoothingHeight % sections;
+        long nextHeight = 1;
+        for(int i = 0; i < sections; i++) {
+            if(i < longerSections) {
+                *tmpPtr++ = getSmoother(source, target, limit, 1, nextHeight, target->xSize - 2, sectionHeight + 1);
+                // printf("Section [%ld, %ld]\n", nextHeight, sectionHeight+1);
+                nextHeight += sectionHeight + 1;
+            } else {
+                *tmpPtr++ = getSmoother(source, target, limit, 1, nextHeight, target->xSize - 2, sectionHeight);
+                //printf("Section [%ld, %ld]\n", nextHeight, sectionHeight);
+                nextHeight += sectionHeight;
+            }
+        }
+    }
 }
 
 Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit) {
@@ -78,10 +110,10 @@ Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit) {
     return resultFlipped ? source : target;
 }
 
-void Matrix_copyEdge(Matrix* source, Matrix* target) {
+void Matrix_copyEdge(Matrix *source, Matrix *target) {
     MatEdgeIterator *edgeIterator1 = Matrix_getEdgeIterator(source);
     MatEdgeIterator *edgeIterator2 = Matrix_getEdgeIterator(target);
-    while(MatEdgeIterator_hasNext(edgeIterator1)) {
+    while (MatEdgeIterator_hasNext(edgeIterator1)) {
         *MatEdgeIterator_next(edgeIterator2) = *MatEdgeIterator_next(edgeIterator1);
     }
     MatEdgeIterator_destroy(edgeIterator1);
@@ -101,11 +133,11 @@ void Matrix_print(Matrix *matrix) {
 }
 
 bool Matrix_equals(Matrix *matrix1, Matrix *matrix2) {
-    if(matrix1->ySize == matrix2->ySize && matrix1->xSize == matrix2->xSize) {
+    if (matrix1->ySize == matrix2->ySize && matrix1->xSize == matrix2->xSize) {
         bool match = true;
         MatIterator *matIterator1 = Matrix_getIterator(matrix1, 0, 0, matrix1->xSize, matrix1->ySize);
         MatIterator *matIterator2 = Matrix_getIterator(matrix2, 0, 0, matrix2->xSize, matrix2->ySize);
-        while(MatIterator_hasNext(matIterator1) && match) {
+        while (MatIterator_hasNext(matIterator1) && match) {
             match = *MatIterator_next(matIterator1) == *MatIterator_next(matIterator2);
         }
         MatIterator_destroy(matIterator1);

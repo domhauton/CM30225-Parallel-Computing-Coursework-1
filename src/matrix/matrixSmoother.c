@@ -12,6 +12,7 @@ typedef struct matrixSmoother {
     MatIterator *srcDown;
     MatIterator *srcLeft;
     MatIterator *srcRight;
+    long ctr;
     double diffLimit;
     bool overLimit;
 } MatSmoother;
@@ -32,6 +33,7 @@ MatSmoother *MatSmoother_init(MatIterator *target,
     matSmoother->srcRight = srcRight;
     matSmoother->diffLimit = diffLimit;
     matSmoother->overLimit = false;
+    matSmoother->ctr = 0;
     return matSmoother;
 }
 
@@ -45,11 +47,13 @@ MatSmoother *MatSmoother_split(MatSmoother *matSmoother1) {
     matSmoother2->srcRight = MatIterator_split(matSmoother1->srcRight);
     matSmoother2->diffLimit = matSmoother1->diffLimit;
     matSmoother2->overLimit = matSmoother1->overLimit;
+    matSmoother2->ctr = 0;
     return matSmoother2;
 }
 
 void MatSmoother_smoothIgnoreDiff(MatSmoother *matSmoother) {
     while (MatIterator_hasNext(matSmoother->srcDown)) {
+        matSmoother->ctr++;
         *MatIterator_next(matSmoother->target) = (*MatIterator_next(matSmoother->srcUp) +
                                                   *MatIterator_next(matSmoother->srcDown) +
                                                   *MatIterator_next(matSmoother->srcLeft) +
@@ -59,6 +63,7 @@ void MatSmoother_smoothIgnoreDiff(MatSmoother *matSmoother) {
 
 void MatSmoother_smooth(MatSmoother *matSmoother) {
     while (!matSmoother->overLimit && MatIterator_hasNext(matSmoother->srcDown)) {
+        matSmoother->ctr++;
         double* currentResPtr = MatIterator_next(matSmoother->target);
         *currentResPtr = (*MatIterator_next(matSmoother->srcUp) +
                                                   *MatIterator_next(matSmoother->srcDown) +
@@ -73,6 +78,10 @@ void MatSmoother_smooth(MatSmoother *matSmoother) {
 bool MatSmoother_exceedDiff(MatSmoother *matSmoother){
     return matSmoother->overLimit;
 };
+
+long MatSmoother_getIterations(MatSmoother *matSmoother){
+    return matSmoother->ctr;
+}
 
 void MatSmoother_destroy(MatSmoother *matSmoother) {
     MatIterator_destroy(matSmoother->srcMid);

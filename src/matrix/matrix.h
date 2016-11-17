@@ -11,8 +11,6 @@
 
 typedef struct matrix Matrix;
 
-Matrix *Matrix_init();
-
 Matrix *Matrix_initSet(double *values, long xSize, long ySize);
 
 double *Matrix_getDataPtr(Matrix *matrix, long x, long y);
@@ -24,6 +22,12 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix);
 void Matrix_copyEdge(Matrix* source, Matrix* target);
 
 MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit);
+
+void Matrix_getSmootherCut(Matrix *source,
+                           Matrix *target,
+                           double limit,
+                           unsigned int sections,
+                           MatSmoother** smoothers);
 
 Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit);
 

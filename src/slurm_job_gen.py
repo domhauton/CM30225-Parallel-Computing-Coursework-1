@@ -45,17 +45,18 @@ def write_to_file(threads, precision, size):
 
 def print_file_name(threads, precision, size):
     filename = gen_file_name(threads, precision, size)
-    print("Writing to: " + filename)
+    print("Job Target: " + filename)
 
 
 if not os.path.exists(directory):
     os.makedirs(directory)
 
 currentPrecision = 0.0001
+jobType = 3
 for currentThread in [2**j for j in range(0, int(math.log2(multiprocessing.cpu_count()))+1)]:
-    for currentSize in [2**j for j in range(4, 14)]:
-        #write_to_file(currentThread, currentPrecision, currentSize)
-        print_file_name(currentThread, currentPrecision, currentSize)
+    for currentSize in [2**j for j in range(6, 12)]:
+        write_to_file(currentThread, currentPrecision, currentSize, jobType)
+        #print_file_name(currentThread, currentPrecision, currentSize)
 
 
 
