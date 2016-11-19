@@ -15,6 +15,10 @@ MatIterator *MatIterator_split(MatIterator* matIterator1);
 
 double *MatIterator_next(MatIterator *matIterator);
 
+double *MatIterator_stepUnsafe(MatIterator *matIterator);
+
+double *MatIterator_nextUnsafe(MatIterator *matIterator);
+
 bool MatIterator_hasNext(MatIterator *matIterator);
 
 void MatIterator_destroy(MatIterator *matIterator);

@@ -15,11 +15,12 @@ MatSmoother *MatSmoother_init(MatIterator *target,
                               MatIterator *srcDown,
                               MatIterator *srcLeft,
                               MatIterator *srcRight,
+                              bool *overLimit,
                               double diffLimit);
 
 void MatSmoother_smooth(MatSmoother *matSmoother);
 
-long MatSmoother_getIterations(MatSmoother *matSmoother);
+//long MatSmoother_getIterations(MatSmoother *matSmoother);
 
 MatSmoother *MatSmoother_split(MatSmoother *matSmoother1);
 

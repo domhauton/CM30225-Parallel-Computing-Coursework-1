@@ -33,7 +33,7 @@ MatIterator *MatIterator_init(double *dataPtr, long fullWidth, long areaWidth, l
     return matIterator;
 }
 
-MatIterator *MatIterator_split(MatIterator* matIterator1) {
+MatIterator *MatIterator_split(MatIterator *matIterator1) {
     MatIterator *matIterator2 = malloc(sizeof(MatIterator));
     matIterator2->currentPtr = matIterator1->currentPtr;
     matIterator2->rowEnd = matIterator1->rowEnd;
@@ -42,28 +42,41 @@ MatIterator *MatIterator_split(MatIterator* matIterator1) {
     matIterator2->areaWidth = matIterator1->areaWidth;
     matIterator2->itrStep = matIterator1->itrStep;
 
-    MatIterator_next(matIterator2);
+    MatIterator_nextUnsafe(matIterator2);
 
     matIterator1->itrStep *= 2;
     matIterator2->itrStep *= 2;
     return matIterator2;
 }
 
+double *MatIterator_stepUnsafe(MatIterator *matIterator) {
+    if (matIterator->currentPtr > matIterator->rowEnd) {
+        advanceRow(matIterator);
+    }
+    return matIterator->currentPtr++;
+}
+
 double *MatIterator_step(MatIterator *matIterator) {
     if (MatIterator_hasNext(matIterator)) {
-        if (matIterator->currentPtr > matIterator->rowEnd) {
-            advanceRow(matIterator);
-        }
-        return matIterator->currentPtr++;
+        return MatIterator_stepUnsafe(matIterator);
     } else {
         return NULL;
     }
 }
 
+double *MatIterator_nextUnsafe(MatIterator *matIterator) {
+    double *retPtr = matIterator->currentPtr;
+    matIterator->currentPtr += matIterator->itrStep;
+    if (matIterator->currentPtr > matIterator->rowEnd) {
+        advanceRow(matIterator);
+    }
+    return retPtr;
+}
+
 double *MatIterator_next(MatIterator *matIterator) {
-    double* retPtr = MatIterator_step(matIterator);
-    if(matIterator != NULL) {
-        for(int i = matIterator->itrStep; i > 1; i--) {
+    double *retPtr = MatIterator_step(matIterator);
+    if (matIterator != NULL) {
+        for (int i = matIterator->itrStep; i > 1; i--) {
             MatIterator_step(matIterator);
         }
     }

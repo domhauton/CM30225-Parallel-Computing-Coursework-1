@@ -7,21 +7,26 @@
 #include "matrix/benchmark.h"
 
 void matrixComputeTest() {
-    Matrix *matrix = MatrixFactory_initRandom(1000, 1000);
-    Matrix *matrix2 = MatrixFactory_initEmpty(1000, 1000);
-    //Matrix_print(matrix);
-    printf("\n");
-    //Matrix_print(matrix2);
+    Matrix *matrix = MatrixFactory_initEmpty(10, 10);
+    Matrix *matrix2 = MatrixFactory_initEmpty(10, 10);
+    MatEdgeIterator *matEdgeIterator = Matrix_getEdgeIterator(matrix);
+    while(MatEdgeIterator_hasNext(matEdgeIterator)) {
+        *MatEdgeIterator_next(matEdgeIterator) = 2;
+    }
+    MatEdgeIterator_destroy(matEdgeIterator);
+
     Matrix_copyEdge(matrix, matrix2);
+    Matrix_print(matrix);
+    bool *overLimit = calloc(false, sizeof(bool));
+    Matrix* res = Matrix_smoothUntilLimit(matrix, matrix2, 0.000001, overLimit);
+    free(overLimit);
     printf("\n");
-    //Matrix_print(matrix2);
-    printf("\n");
-    clock_t begin = clock();
-    Matrix *tmp = Matrix_smoothUntilLimit(matrix, matrix2, 0.01f);
-    clock_t end = clock();
-    double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-    printf("Took %f seconds.\n", time_spent);
-    //Matrix_print(tmp);
+    Matrix_print(res);
+    unsigned long long matPar = Matrix_getParity(matrix);
+    printf("Parity 1: %016llx\n", matPar);
+    unsigned long long matCRC = Matrix_getCRC64(matrix2);
+    printf("Parity 1: %016llx\n", matCRC);
+
     Matrix_destroy(matrix);
     Matrix_destroy(matrix2);
 }
@@ -44,6 +49,7 @@ void matrixMultiIteratorOverwriteTest() {
     MatIterator_destroy(matIterator2);
     MatIterator_destroy(matIterator3);
     Matrix_print(matrix);
+    printf("Parity: %016llx", Matrix_getParity(matrix));
     Matrix_destroy(matrix);
 }
 
@@ -72,7 +78,6 @@ void matrixCompareRegeneration(int size) {
 }
 
 int main(int argc, char *argv[]) {
-
     if (argc == 4) {
         unsigned int threads = (unsigned int) atoi(argv[1]);
         int size = atoi(argv[2]);
@@ -81,7 +86,7 @@ int main(int argc, char *argv[]) {
     } else if (argc == 5) {
         unsigned int threads = (unsigned int) atoi(argv[1]);
         int size = atoi(argv[2]);
-        int type = atoi(argv[2]);
+        int type = atoi(argv[4]);
         double precision = strtof(argv[3], NULL);
         switch(type) {
             case 1:
@@ -96,14 +101,14 @@ int main(int argc, char *argv[]) {
             default:
                 Benchmark_serial(size, precision);
         }
-        Benchmark_smoothUntilLimitPooledCut(size, precision, threads);
     } else {
-        printf(" Ctr |Ty|Size |Thr|  Acc   |  Time\n");
+        printf("  Ctr   |Ty|Size |Thr|  Acc   |  Time  |     Parity     |      CRC64     |\n");
         double precision = 0.001f;
-        for (unsigned int threads = 1; threads <= sysconf(_SC_NPROCESSORS_ONLN); threads<<=1) {
-            for (int matrixSize = (2 << 5); matrixSize <= (2 << 7); matrixSize <<= 1) {
-                //Benchmark_smoothUntilLimit(matrixSize, precision, threads);
-                //Benchmark_smoothUntilLimitPooled(matrixSize, precision, threads);
+        for (unsigned int threads = 1; threads <= sysconf(_SC_NPROCESSORS_ONLN); threads+=1) {
+            for (int matrixSize = (2 << 9); matrixSize <= (2 << 9); matrixSize <<= 1) {
+                Benchmark_serial(matrixSize, precision);
+                Benchmark_smoothUntilLimit(matrixSize, precision, threads);
+                Benchmark_smoothUntilLimitPooled(matrixSize, precision, threads);
                 Benchmark_smoothUntilLimitPooledCut(matrixSize, precision, threads);
             }
         }

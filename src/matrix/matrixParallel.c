@@ -13,28 +13,26 @@ void *parallelSmoothHelper(void *param) {
 }
 
 Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double limit, int threadCount) {
-    bool smoothDiffExceeded;
     bool resultFlipped = false;
     long ctr = 0;
     Matrix *tmp;
     pthread_t threads[threadCount];
     MatSmoother *smoothers[threadCount];
+    bool *overLimit = calloc(false, sizeof(bool));
     do {
-        smoothers[0] = Matrix_getSmoother(source, target, limit);
+        *overLimit = false;
+        smoothers[0] = Matrix_getSmoother(source, target, limit, overLimit);
         for (int pos = 2; pos <= threadCount; pos++) {
             smoothers[pos - 1] = MatSmoother_split(smoothers[(pos - (pos >> 1)) - 1]);
         }
         for (int i = 0; i < threadCount; i++) {
             pthread_create(&threads[i], NULL, parallelSmoothHelper, smoothers[i]);
         }
-        smoothDiffExceeded = false;
         //long totItrCnt = 0;
         for (int i = 0; i < threadCount; i++) {
             if (pthread_join(threads[i], NULL)) {
-                printf("Error joining threads again.\n");
+                printf("Error joining threads.\n");
             }
-            smoothDiffExceeded = smoothDiffExceeded
-                                 || MatSmoother_exceedDiff(smoothers[i]);
             //totItrCnt += MatSmoother_getIterations(smoothers[i]);
             MatSmoother_destroy(smoothers[i]);
         }
@@ -44,9 +42,10 @@ Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double l
         source = tmp;
         resultFlipped = !resultFlipped;
         ctr++;
-    } while (smoothDiffExceeded);
+    } while (*overLimit);
 
-    printf("%05li,", ctr);
+    free(overLimit);
+    printf("%08li,", ctr);
 
     return resultFlipped ? source : target;
 }
@@ -61,8 +60,7 @@ struct parallelArguments {
 void *parallelMutexSmoothHelper(void *param) {
     struct parallelArguments *arguments = param;
     pthread_barrier_wait(arguments->startWorkBarrier);
-
-    while(arguments->alive) {
+    while (arguments->alive) {
         if (arguments->matSmoother != NULL) {
             MatSmoother_smooth(arguments->matSmoother);
         }
@@ -73,7 +71,6 @@ void *parallelMutexSmoothHelper(void *param) {
 }
 
 Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, double limit, unsigned int threadCount) {
-    bool smoothDiffExceeded;
     bool resultFlipped = false;
     long ctr = 0;
     Matrix *tmp;
@@ -91,9 +88,12 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
         pthread_create(&threads[i], NULL, parallelMutexSmoothHelper, &pArgs[i]);
     }
 
+    bool *overLimit = calloc(false, sizeof(bool));
+
     do {
+        *overLimit = false;
         // Create Jobs
-        pArgs[0].matSmoother = Matrix_getSmoother(source, target, limit);
+        pArgs[0].matSmoother = Matrix_getSmoother(source, target, limit, overLimit);
         for (int pos = 2; pos <= threadCount; pos++) {
             pArgs[pos - 1].matSmoother = MatSmoother_split(pArgs[(pos - (pos >> 1)) - 1].matSmoother);
         }
@@ -110,10 +110,7 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
         pthread_barrier_destroy(endWorkBarrier);
 
         // Reduce
-        smoothDiffExceeded = false;
         for (int i = 0; i < threadCount; i++) {
-            smoothDiffExceeded = smoothDiffExceeded
-                                 || MatSmoother_exceedDiff(pArgs[i].matSmoother);
             MatSmoother_destroy(pArgs[i].matSmoother);
         }
 
@@ -122,7 +119,7 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
         source = tmp;
         resultFlipped = !resultFlipped;
         ctr++;
-    } while (smoothDiffExceeded);
+    } while (*overLimit);
 
     // Tidy and join
     for (int i = 0; i < threadCount; i++) {
@@ -134,12 +131,13 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
 
     free(startWorkBarrier);
     free(endWorkBarrier);
+    free(overLimit);
 
     for (int i = 0; i < threadCount; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    printf("%05li,", ctr);
+    printf("%08li,", ctr);
 
     return resultFlipped ? source : target;
 }
@@ -148,13 +146,13 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
                                                  Matrix *target,
                                                  double limit,
                                                  unsigned int threadCount) {
-    bool smoothDiffExceeded;
     bool resultFlipped = false;
     long ctr = 0;
     Matrix *tmp;
     pthread_t threads[threadCount];
     pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
     pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
+    bool *overLimit = calloc(false, sizeof(bool));
     struct parallelArguments pArgs[threadCount];
 
     MatSmoother *smootherPtrs[threadCount];
@@ -170,10 +168,9 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
     }
 
     do {
-
+        *overLimit = false;
         // Create Jobs
-        //printf("Ctr: %ld\n", ctr);
-        Matrix_getSmootherCut(source, target, limit, threadCount, smootherPtrs);
+        Matrix_getSmootherCut(source, target, limit, overLimit, threadCount, smootherPtrs);
         for (int i = 0; i < threadCount; i++) {
             pArgs[i].matSmoother = smootherPtrs[i];
         }
@@ -190,18 +187,18 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
         pthread_barrier_destroy(endWorkBarrier);
 
         // Reduce
-        smoothDiffExceeded = false;
+        //printf("[");
         for (int i = 0; i < threadCount; i++) {
-            smoothDiffExceeded = smoothDiffExceeded
-                                 || MatSmoother_exceedDiff(pArgs[i].matSmoother);
             MatSmoother_destroy(pArgs[i].matSmoother);
+            //printf("%f, ", pArgs[i].workTime);
         }
+        //printf("]\n");
         tmp = target;
         target = source;
         source = tmp;
         resultFlipped = !resultFlipped;
         ctr++;
-    } while (smoothDiffExceeded);
+    } while (*overLimit);
 
     // Tidy and join
     for (int i = 0; i < threadCount; i++) {
@@ -216,10 +213,89 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
 
     free(startWorkBarrier);
     free(endWorkBarrier);
+    free(overLimit);
 
-    printf("%05li,", ctr);
+    printf("%08li,", ctr);
 
     return resultFlipped ? source : target;
 }
 
+Matrix *MatrixParallel_smoothUntilLimitManagedPool(Matrix *source,
+                                                   Matrix *target,
+                                                   double limit,
+                                                   unsigned int threadCount,
+                                                   unsigned int splitCount) {
+    bool resultFlipped = false;
+    long ctr = 0;
+    Matrix *tmp;
+    pthread_t threads[threadCount];
+    pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
+    pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
+    bool *overLimit = calloc(false, sizeof(bool));
+    struct parallelArguments pArgs[threadCount];
+
+    MatSmoother *smootherPtrs[threadCount];
+
+    pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
+    pthread_barrier_init(startWorkBarrier, NULL, threadCount + 1);
+
+    for (int i = 0; i < threadCount; i++) {
+        pArgs[i].startWorkBarrier = startWorkBarrier;
+        pArgs[i].endWorkBarrier = endWorkBarrier;
+        pArgs[i].alive = true;
+        pthread_create(&threads[i], NULL, parallelMutexSmoothHelper, &pArgs[i]);
+    }
+
+    do {
+        *overLimit = false;
+        // Create Jobs
+        Matrix_getSmootherCut(source, target, limit, overLimit, threadCount, smootherPtrs);
+        for (int i = 0; i < threadCount; i++) {
+            pArgs[i].matSmoother = smootherPtrs[i];
+        }
+
+        pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
+
+        // Start work & reset
+        pthread_barrier_wait(startWorkBarrier);
+        pthread_barrier_destroy(startWorkBarrier);
+        pthread_barrier_init(startWorkBarrier, NULL, threadCount + 1);
+
+        // End work & reset
+        pthread_barrier_wait(endWorkBarrier);
+        pthread_barrier_destroy(endWorkBarrier);
+
+        // Reduce
+        //printf("[");
+        for (int i = 0; i < threadCount; i++) {
+            MatSmoother_destroy(pArgs[i].matSmoother);
+            //printf("%f, ", pArgs[i].workTime);
+        }
+        //printf("]\n");
+        tmp = target;
+        target = source;
+        source = tmp;
+        resultFlipped = !resultFlipped;
+        ctr++;
+    } while (*overLimit);
+
+    // Tidy and join
+    for (int i = 0; i < threadCount; i++) {
+        pArgs[i].alive = false;
+    }
+
+    pthread_barrier_wait(startWorkBarrier);
+    pthread_barrier_destroy(startWorkBarrier);
+    for (int i = 0; i < threadCount; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    free(startWorkBarrier);
+    free(endWorkBarrier);
+    free(overLimit);
+
+    printf("%08li,", ctr);
+
+    return resultFlipped ? source : target;
+}
 

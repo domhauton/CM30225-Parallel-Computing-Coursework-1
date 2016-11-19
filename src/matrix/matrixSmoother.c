@@ -12,9 +12,10 @@ typedef struct matrixSmoother {
     MatIterator *srcDown;
     MatIterator *srcLeft;
     MatIterator *srcRight;
-    long ctr;
+    //long ctr;
     double diffLimit;
-    bool overLimit;
+    bool *overLimit;
+    bool split;
 } MatSmoother;
 
 MatSmoother *MatSmoother_init(MatIterator *target,
@@ -23,6 +24,7 @@ MatSmoother *MatSmoother_init(MatIterator *target,
                               MatIterator *srcDown,
                               MatIterator *srcLeft,
                               MatIterator *srcRight,
+                              bool *overLimit,
                               double diffLimit) {
     MatSmoother *matSmoother = malloc(sizeof(MatSmoother));
     matSmoother->target = target;
@@ -32,8 +34,8 @@ MatSmoother *MatSmoother_init(MatIterator *target,
     matSmoother->srcLeft = srcLeft;
     matSmoother->srcRight = srcRight;
     matSmoother->diffLimit = diffLimit;
-    matSmoother->overLimit = false;
-    matSmoother->ctr = 0;
+    matSmoother->overLimit = overLimit;
+    matSmoother->split = false;
     return matSmoother;
 }
 
@@ -47,41 +49,64 @@ MatSmoother *MatSmoother_split(MatSmoother *matSmoother1) {
     matSmoother2->srcRight = MatIterator_split(matSmoother1->srcRight);
     matSmoother2->diffLimit = matSmoother1->diffLimit;
     matSmoother2->overLimit = matSmoother1->overLimit;
-    matSmoother2->ctr = 0;
+    matSmoother2->split = true;
+    matSmoother1->split = true;
+
     return matSmoother2;
 }
 
 void MatSmoother_smoothIgnoreDiff(MatSmoother *matSmoother) {
-    while (MatIterator_hasNext(matSmoother->srcDown)) {
-        matSmoother->ctr++;
-        *MatIterator_next(matSmoother->target) = (*MatIterator_next(matSmoother->srcUp) +
-                                                  *MatIterator_next(matSmoother->srcDown) +
-                                                  *MatIterator_next(matSmoother->srcLeft) +
-                                                  *MatIterator_next(matSmoother->srcRight)) / 4;
+    if (matSmoother->split) {
+        while (MatIterator_hasNext(matSmoother->srcDown)) {
+            *MatIterator_nextUnsafe(matSmoother->target) = ((*MatIterator_nextUnsafe(matSmoother->srcUp) +
+                                                             *MatIterator_nextUnsafe(matSmoother->srcDown)) +
+                                                            (*MatIterator_nextUnsafe(matSmoother->srcLeft) +
+                                                             *MatIterator_nextUnsafe(matSmoother->srcRight))) / 4;
+        }
+    } else {
+        while (MatIterator_hasNext(matSmoother->srcDown)) {
+            *MatIterator_stepUnsafe(matSmoother->target) = ((*MatIterator_stepUnsafe(matSmoother->srcUp) +
+                                                             *MatIterator_stepUnsafe(matSmoother->srcDown)) +
+                                                            (*MatIterator_stepUnsafe(matSmoother->srcLeft) +
+                                                             *MatIterator_stepUnsafe(matSmoother->srcRight))) / 4;
+        }
     }
 }
 
 void MatSmoother_smooth(MatSmoother *matSmoother) {
-    while (!matSmoother->overLimit && MatIterator_hasNext(matSmoother->srcDown)) {
-        matSmoother->ctr++;
-        double* currentResPtr = MatIterator_next(matSmoother->target);
-        *currentResPtr = (*MatIterator_next(matSmoother->srcUp) +
-                                                  *MatIterator_next(matSmoother->srcDown) +
-                                                  *MatIterator_next(matSmoother->srcLeft) +
-                                                  *MatIterator_next(matSmoother->srcRight)) / 4;
-        double diff = *currentResPtr - *MatIterator_next(matSmoother->srcMid);
-        matSmoother->overLimit = matSmoother->diffLimit < diff && -diff < matSmoother->diffLimit;
+    if (matSmoother->split) {
+        while (!*matSmoother->overLimit && MatIterator_hasNext(matSmoother->srcDown)) {
+            double *currentResPtr = MatIterator_nextUnsafe(matSmoother->target);
+            *currentResPtr = ((*MatIterator_nextUnsafe(matSmoother->srcUp) +
+                               *MatIterator_nextUnsafe(matSmoother->srcDown)) +
+                              (*MatIterator_nextUnsafe(matSmoother->srcLeft) +
+                               *MatIterator_nextUnsafe(matSmoother->srcRight))) / 4;
+            double diff = *currentResPtr - *MatIterator_nextUnsafe(matSmoother->srcMid);
+            if (matSmoother->diffLimit < diff && -diff < matSmoother->diffLimit) {
+                *matSmoother->overLimit = true;
+            }
+        }
+    } else {
+        while (!*matSmoother->overLimit && MatIterator_hasNext(matSmoother->srcDown)) {
+            double *currentResPtr = MatIterator_stepUnsafe(matSmoother->target);
+            *currentResPtr = ((*MatIterator_stepUnsafe(matSmoother->srcUp) +
+                               *MatIterator_stepUnsafe(matSmoother->srcDown)) +
+                              (*MatIterator_stepUnsafe(matSmoother->srcLeft) +
+                               *MatIterator_stepUnsafe(matSmoother->srcRight))) / 4;
+            double diff = *currentResPtr - *MatIterator_stepUnsafe(matSmoother->srcMid);
+            if (matSmoother->diffLimit < diff && -diff < matSmoother->diffLimit) {
+                *matSmoother->overLimit = true;
+            }
+        }
     }
+
     MatSmoother_smoothIgnoreDiff(matSmoother);
 }
 
-bool MatSmoother_exceedDiff(MatSmoother *matSmoother){
-    return matSmoother->overLimit;
+bool MatSmoother_exceedDiff(MatSmoother *matSmoother) {
+    return *matSmoother->overLimit;
 };
 
-long MatSmoother_getIterations(MatSmoother *matSmoother){
-    return matSmoother->ctr;
-}
 
 void MatSmoother_destroy(MatSmoother *matSmoother) {
     MatIterator_destroy(matSmoother->srcMid);

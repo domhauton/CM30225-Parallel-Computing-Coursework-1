@@ -40,33 +40,37 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix) {
     return MatEdgeIterator_init(matrix->data, matrix->xSize, matrix->ySize);
 }
 
-MatSmoother *getSmoother(Matrix *source, Matrix *target, double limit, long x, long y, long xSize, long ySize) {
+MatSmoother *getSmoother(Matrix *source, Matrix *target,
+                         double limit, bool *overLimit,
+                         long x, long y,
+                         long xSize, long ySize) {
     MatIterator *resItr = Matrix_getIterator(target, x, y, xSize, ySize);
     MatIterator *ctrItr = Matrix_getIterator(source, x, y, xSize, ySize);
     MatIterator *topItr = Matrix_getIterator(source, x - 1, y, xSize, ySize);
     MatIterator *botItr = Matrix_getIterator(source, x + 1, y, xSize, ySize);
     MatIterator *lftItr = Matrix_getIterator(source, x, y - 1, xSize, ySize);
     MatIterator *rgtItr = Matrix_getIterator(source, x, y + 1, xSize, ySize);
-    return MatSmoother_init(resItr, ctrItr, topItr, botItr, lftItr, rgtItr, limit);
+    return MatSmoother_init(resItr, ctrItr, topItr, botItr, lftItr, rgtItr, overLimit, limit);
 }
 
-MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit) {
+MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit, bool *overLimit) {
     long itrWidth = target->xSize - 2;
     long itrHeight = target->ySize - 2;
-    return getSmoother(source, target, limit, 1, 1, itrWidth, itrHeight);
+    return getSmoother(source, target, limit, overLimit, 1, 1, itrWidth, itrHeight);
 }
 
 void Matrix_getSmootherCut(Matrix *source,
                            Matrix *target,
                            double limit,
+                           bool *overLimit,
                            unsigned int sections,
                            MatSmoother** smoothers){
     long smoothingHeight = target->ySize - 2;
-    // printf("Spliting %ld into %d\n", smoothingHeight, sections);
     MatSmoother** tmpPtr = smoothers;
+
     if(smoothingHeight <= sections) { // 1 Thread per row
         for(int i = 1; i <= smoothingHeight; i++) {
-            *tmpPtr++ = getSmoother(source, target, limit, 1, i, target->xSize - 2, 1);
+            *tmpPtr++ = getSmoother(source, target, limit, overLimit, 1, i, target->xSize - 2, 1);
         }
     } else {
         long sectionHeight = smoothingHeight / sections;
@@ -74,27 +78,24 @@ void Matrix_getSmootherCut(Matrix *source,
         long nextHeight = 1;
         for(int i = 0; i < sections; i++) {
             if(i < longerSections) {
-                *tmpPtr++ = getSmoother(source, target, limit, 1, nextHeight, target->xSize - 2, sectionHeight + 1);
-                // printf("Section [%ld, %ld]\n", nextHeight, sectionHeight+1);
+                *tmpPtr++ = getSmoother(source, target, limit, overLimit, 1, nextHeight, target->xSize - 2, sectionHeight + 1);
                 nextHeight += sectionHeight + 1;
             } else {
-                *tmpPtr++ = getSmoother(source, target, limit, 1, nextHeight, target->xSize - 2, sectionHeight);
-                //printf("Section [%ld, %ld]\n", nextHeight, sectionHeight);
+                *tmpPtr++ = getSmoother(source, target, limit, overLimit, 1, nextHeight, target->xSize - 2, sectionHeight);
                 nextHeight += sectionHeight;
             }
         }
     }
 }
 
-Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit) {
-    bool smoothDiffExceeded;
+Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit, bool *overLimit) {
     bool resultFlipped = false;
     long ctr = 0;
     Matrix *tmp;
     do {
-        MatSmoother *smoother = Matrix_getSmoother(source, target, limit);
+        *overLimit = false;
+        MatSmoother *smoother = Matrix_getSmoother(source, target, limit, overLimit);
         MatSmoother_smooth(smoother);
-        smoothDiffExceeded = MatSmoother_exceedDiff(smoother);
         MatSmoother_destroy(smoother);
 
         tmp = target;
@@ -103,11 +104,36 @@ Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit) {
         resultFlipped = !resultFlipped;
 
         ctr++;
-    } while (smoothDiffExceeded);
+    } while (*overLimit);
 
-    printf("%05li,", ctr);
+    printf("%08li,", ctr);
 
     return resultFlipped ? source : target;
+}
+
+union {
+    double d; // C99 double == 64 bytes
+    unsigned long long int ll; // C99 long long >= 64 bytes
+} dubLongTypePunner;
+
+unsigned long long int Matrix_getParity(Matrix *matrix) {
+    unsigned long long int currentParity = 0ULL;
+    double *endPtr = matrix->data + matrix->ySize*matrix->ySize;
+    for(double *tmpPtr = matrix->data; tmpPtr < endPtr; tmpPtr++) {
+        dubLongTypePunner.d = *tmpPtr;
+        currentParity ^= dubLongTypePunner.ll;
+    }
+    return currentParity;
+}
+
+unsigned long long int Matrix_getCRC64(Matrix *matrix) {
+    unsigned long long int currentCRC = 0ULL;
+    double *endPtr = matrix->data + matrix->ySize*matrix->ySize;
+    for(double *tmpPtr = matrix->data; tmpPtr < endPtr; tmpPtr++) {
+        dubLongTypePunner.d = *tmpPtr;
+        currentCRC += dubLongTypePunner.ll;
+    }
+    return currentCRC;
 }
 
 void Matrix_copyEdge(Matrix *source, Matrix *target) {

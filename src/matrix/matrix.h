@@ -21,19 +21,24 @@ MatEdgeIterator *Matrix_getEdgeIterator(Matrix *matrix);
 
 void Matrix_copyEdge(Matrix* source, Matrix* target);
 
-MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit);
+MatSmoother *Matrix_getSmoother(Matrix *source, Matrix *target, double limit, bool *overLimit);
 
 void Matrix_getSmootherCut(Matrix *source,
                            Matrix *target,
                            double limit,
+                           bool *overLimit,
                            unsigned int sections,
                            MatSmoother** smoothers);
 
-Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit);
+Matrix *Matrix_smoothUntilLimit(Matrix *source, Matrix *target, double limit, bool *overLimit);
 
 void Matrix_print(Matrix *matrix);
 
 bool Matrix_equals(Matrix *matrix1, Matrix *matrix2);
+
+unsigned long long int Matrix_getParity(Matrix *matrix);
+
+unsigned long long int Matrix_getCRC64(Matrix *matrix);
 
 void Matrix_destroy(Matrix *matrix);
 
