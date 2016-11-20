@@ -7,11 +7,11 @@ directory = os.path.expanduser('~') + "/jobs"
 
 
 def get_time_estimate(threads, precision, size, job_type):
-    return ((size - 2) * (size - 2) * 3000) / (8000000 * threads)
+    return (((size - 2) * (size - 2) * 3000) / (4000000 * threads)) + 20
 
 
-def get_job_executor(threads, precision, size, job_type):
-    return ["./parallel_computation_cw1 {:d} {:d} {:f} {:d}".format(threads, size, precision, job_type)]
+def get_job_executor(threads, precision, size, job_type, cuts):
+    return ["./parallel_computation_cw1 {:d} {:d} {:f} {:d} {:d}".format(threads, size, precision, job_type, cuts)]
 
 
 def gen_content(threads, job_uid):
@@ -46,11 +46,6 @@ def write_to_file(jobs, job_uid):
     f.close()
 
 
-def print_file_name(threads, precision, size, job_type):
-    filename = gen_file_name(threads, precision, size, job_type)
-    print("Job Target: " + filename)
-
-
 if not os.path.exists(directory):
     os.makedirs(directory)
 
@@ -58,19 +53,20 @@ job_uid_ctr = 0
 
 jobQueue = []
 jobQueueTime = 0
-jobQueueMaxTime = 900
+jobQueueMaxTime = 600
 
 currentPrecision = 0.0001
+cuts = 20
 # jobType = 1
 # currentThread = 1
 
-for jobType in range(1, 4):
-    for currentThread in [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130]:
+for jobType in range(1, 5):
+    for currentThread in [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 30, 60, 80, 100, 120, 140]:
     # for currentThread in [2 ** j for j in range(0, int(math.log2(multiprocessing.cpu_count())) + 1)]:
         # for currentThread in [2 * j for j in range(1, int(multiprocessing.cpu_count() / 2) + 1)]:
-        for currentSize in [2 ** j for j in range(5, 12)]:
+        for currentSize in [2 ** j for j in range(7, 12)]:
             job_uid_ctr += 1
-            jobExecutor = get_job_executor(currentThread, currentPrecision, currentSize, jobType)
+            jobExecutor = get_job_executor(currentThread, currentPrecision, currentSize, jobType, cuts)
             timeEstimate = get_time_estimate(currentThread, currentPrecision, currentSize, jobType)
             print(timeEstimate)
             if timeEstimate > jobQueueMaxTime:

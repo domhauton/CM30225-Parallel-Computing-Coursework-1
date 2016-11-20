@@ -5,25 +5,28 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "matrixParallel.h"
+#include "mat_smooth_parallel.h"
+#include "spool.h"
 
 void *parallelSmoothHelper(void *param) {
-    MatSmoother_smooth(param);
+    mat_smthr_smooth(param);
     return NULL;
 }
 
-Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double limit, int threadCount) {
+/* Parallel wrapper for mat_smooth
+        Implemented using joins as synchronization method */
+mat_t *mat_smooth_parallel_join(mat_t *source, mat_t *target, double limit, int threadCount) {
     bool resultFlipped = false;
     long ctr = 0;
-    Matrix *tmp;
+    mat_t *tmp;
     pthread_t threads[threadCount];
-    MatSmoother *smoothers[threadCount];
+    mat_smthr_t *smoothers[threadCount];
     bool *overLimit = calloc(false, sizeof(bool));
     do {
         *overLimit = false;
-        smoothers[0] = Matrix_getSmoother(source, target, limit, overLimit);
+        smoothers[0] = mat_smthr_create_inner(source, target, limit, overLimit);
         for (int pos = 2; pos <= threadCount; pos++) {
-            smoothers[pos - 1] = MatSmoother_split(smoothers[(pos - (pos >> 1)) - 1]);
+            smoothers[pos - 1] = mat_smthr_split(smoothers[(pos - (pos >> 1)) - 1]);
         }
         for (int i = 0; i < threadCount; i++) {
             pthread_create(&threads[i], NULL, parallelSmoothHelper, smoothers[i]);
@@ -34,7 +37,7 @@ Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double l
                 printf("Error joining threads.\n");
             }
             //totItrCnt += MatSmoother_getIterations(smoothers[i]);
-            MatSmoother_destroy(smoothers[i]);
+            mat_smthr_destroy(smoothers[i]);
         }
         //printf("Smooth Ops (sqrt): %f\n", sqrt(totItrCnt));
         tmp = target;
@@ -51,7 +54,7 @@ Matrix *MatrixParallel_smoothUntilLimit(Matrix *source, Matrix *target, double l
 }
 
 struct parallelArguments {
-    MatSmoother *matSmoother;
+    mat_smthr_t *matSmoother;
     pthread_barrier_t *startWorkBarrier;
     pthread_barrier_t *endWorkBarrier;
     bool alive;
@@ -62,7 +65,7 @@ void *parallelMutexSmoothHelper(void *param) {
     pthread_barrier_wait(arguments->startWorkBarrier);
     while (arguments->alive) {
         if (arguments->matSmoother != NULL) {
-            MatSmoother_smooth(arguments->matSmoother);
+            mat_smthr_smooth(arguments->matSmoother);
         }
         pthread_barrier_wait(arguments->endWorkBarrier);
         pthread_barrier_wait(arguments->startWorkBarrier);
@@ -70,10 +73,12 @@ void *parallelMutexSmoothHelper(void *param) {
     return NULL;
 }
 
-Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, double limit, unsigned int threadCount) {
+/* Parallel wrapper for mat_smooth
+        Implemented using barriers as synchronization method and leapfrog labour division */
+mat_t *mat_smooth_parallel_barrier_leapfrog(mat_t *source, mat_t *target, double limit, unsigned int threadCount) {
     bool resultFlipped = false;
     long ctr = 0;
-    Matrix *tmp;
+    mat_t *tmp;
     pthread_t threads[threadCount];
     pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
     pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
@@ -93,9 +98,9 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
     do {
         *overLimit = false;
         // Create Jobs
-        pArgs[0].matSmoother = Matrix_getSmoother(source, target, limit, overLimit);
+        pArgs[0].matSmoother = mat_smthr_create_inner(source, target, limit, overLimit);
         for (int pos = 2; pos <= threadCount; pos++) {
-            pArgs[pos - 1].matSmoother = MatSmoother_split(pArgs[(pos - (pos >> 1)) - 1].matSmoother);
+            pArgs[pos - 1].matSmoother = mat_smthr_split(pArgs[(pos - (pos >> 1)) - 1].matSmoother);
         }
 
         pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
@@ -111,7 +116,7 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
 
         // Reduce
         for (int i = 0; i < threadCount; i++) {
-            MatSmoother_destroy(pArgs[i].matSmoother);
+            mat_smthr_destroy(pArgs[i].matSmoother);
         }
 
         tmp = target;
@@ -142,20 +147,22 @@ Matrix *MatrixParallel_smoothUntilLimitPooled(Matrix *source, Matrix *target, do
     return resultFlipped ? source : target;
 }
 
-Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
-                                                 Matrix *target,
-                                                 double limit,
-                                                 unsigned int threadCount) {
+/* Parallel wrapper for mat_smooth
+        Implemented using barriers as synchronization method and rowcut labour division */
+mat_t *mat_smooth_parallel_barrier_rowcut(mat_t *source,
+                                          mat_t *target,
+                                          double limit,
+                                          unsigned int threadCount) {
     bool resultFlipped = false;
     long ctr = 0;
-    Matrix *tmp;
+    mat_t *tmp;
     pthread_t threads[threadCount];
     pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
     pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
     bool *overLimit = calloc(false, sizeof(bool));
     struct parallelArguments pArgs[threadCount];
 
-    MatSmoother *smootherPtrs[threadCount];
+    mat_smthr_t *smootherPtrs[threadCount];
 
     pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
     pthread_barrier_init(startWorkBarrier, NULL, threadCount + 1);
@@ -170,7 +177,7 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
     do {
         *overLimit = false;
         // Create Jobs
-        Matrix_getSmootherCut(source, target, limit, overLimit, threadCount, smootherPtrs);
+        mat_smthr_create_inner_rowcut(source, target, limit, overLimit, threadCount, smootherPtrs);
         for (int i = 0; i < threadCount; i++) {
             pArgs[i].matSmoother = smootherPtrs[i];
         }
@@ -189,7 +196,7 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
         // Reduce
         //printf("[");
         for (int i = 0; i < threadCount; i++) {
-            MatSmoother_destroy(pArgs[i].matSmoother);
+            mat_smthr_destroy(pArgs[i].matSmoother);
             //printf("%f, ", pArgs[i].workTime);
         }
         //printf("]\n");
@@ -220,58 +227,33 @@ Matrix *MatrixParallel_smoothUntilLimitPooledCut(Matrix *source,
     return resultFlipped ? source : target;
 }
 
-Matrix *MatrixParallel_smoothUntilLimitManagedPool(Matrix *source,
-                                                   Matrix *target,
-                                                   double limit,
-                                                   unsigned int threadCount,
-                                                   unsigned int splitCount) {
+/* Parallel wrapper for mat_smooth
+        Implemented using worker pool synchronization method and rowcut labour division */
+mat_t *mat_smooth_parallel_pool_rowcut(mat_t *source,
+                                          mat_t *target,
+                                          double limit,
+                                          unsigned int threadCount,
+                                          unsigned int smthrSize) {
     bool resultFlipped = false;
     long ctr = 0;
-    Matrix *tmp;
-    pthread_t threads[threadCount];
-    pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
-    pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
-    bool *overLimit = calloc(false, sizeof(bool));
-    struct parallelArguments pArgs[threadCount];
+    mat_t *tmp;
+    bool *overLimit = malloc(sizeof(bool));
+    spool_t *spool = spool_init(NULL);
 
-    MatSmoother *smootherPtrs[threadCount];
-
-    pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
-    pthread_barrier_init(startWorkBarrier, NULL, threadCount + 1);
-
-    for (int i = 0; i < threadCount; i++) {
-        pArgs[i].startWorkBarrier = startWorkBarrier;
-        pArgs[i].endWorkBarrier = endWorkBarrier;
-        pArgs[i].alive = true;
-        pthread_create(&threads[i], NULL, parallelMutexSmoothHelper, &pArgs[i]);
+    for(int i = 0; i < threadCount; i++) {
+        spool_worker_add(spool);
     }
+
+    mat_smthr_list_t *jobRoot = malloc(sizeof(mat_smthr_list_t));
+    jobRoot->data = NULL;
 
     do {
         *overLimit = false;
-        // Create Jobs
-        Matrix_getSmootherCut(source, target, limit, overLimit, threadCount, smootherPtrs);
-        for (int i = 0; i < threadCount; i++) {
-            pArgs[i].matSmoother = smootherPtrs[i];
-        }
-
-        pthread_barrier_init(endWorkBarrier, NULL, threadCount + 1);
-
-        // Start work & reset
-        pthread_barrier_wait(startWorkBarrier);
-        pthread_barrier_destroy(startWorkBarrier);
-        pthread_barrier_init(startWorkBarrier, NULL, threadCount + 1);
-
-        // End work & reset
-        pthread_barrier_wait(endWorkBarrier);
-        pthread_barrier_destroy(endWorkBarrier);
-
-        // Reduce
-        //printf("[");
-        for (int i = 0; i < threadCount; i++) {
-            MatSmoother_destroy(pArgs[i].matSmoother);
-            //printf("%f, ", pArgs[i].workTime);
-        }
-        //printf("]\n");
+        // Submit Jobs
+        long jobCount = mat_smthr_create_inner_cut_even(source, target, limit, overLimit, smthrSize, jobRoot);
+        spool_job_sync_t *spoolJobSync = spool_job_add_batch(spool, jobRoot->next, (unsigned int) jobCount);
+        spool_job_sync_wait(spoolJobSync);
+        spool_job_sync_destroy(spoolJobSync);
         tmp = target;
         target = source;
         source = tmp;
@@ -279,19 +261,8 @@ Matrix *MatrixParallel_smoothUntilLimitManagedPool(Matrix *source,
         ctr++;
     } while (*overLimit);
 
-    // Tidy and join
-    for (int i = 0; i < threadCount; i++) {
-        pArgs[i].alive = false;
-    }
-
-    pthread_barrier_wait(startWorkBarrier);
-    pthread_barrier_destroy(startWorkBarrier);
-    for (int i = 0; i < threadCount; i++) {
-        pthread_join(threads[i], NULL);
-    }
-
-    free(startWorkBarrier);
-    free(endWorkBarrier);
+    spool_destroy(spool);
+    free(jobRoot);
     free(overLimit);
 
     printf("%08li,", ctr);
