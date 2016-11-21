@@ -2,6 +2,7 @@
 if [ -d ~/parallel01 ]; then
         rm -rf ~/parallel01
 fi
+
 cp -R ~/bucs/Documents/parallel/ ~/parallel01
 cd ~/parallel01
 cmake CMakeLists.txt

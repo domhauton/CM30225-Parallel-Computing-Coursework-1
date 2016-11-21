@@ -3,13 +3,16 @@
 //
 
 #include <stdlib.h>
+#include <string.h>
 #include "mat.h"
 
 const long RNG_SEED = 31413241L;
 
 /* Creates a new matrix full of zero values */
 mat_t *mat_factory_init_empty(long xSize, long ySize) {
-    double *data = calloc((size_t) (xSize * ySize), sizeof(double));
+    void *data = NULL;
+    posix_memalign( &data, 64 , sizeof(double) * xSize * ySize);
+    memset( data, 0, xSize * ySize * sizeof(double));
     return mat_init(data, xSize, ySize);
 }
 

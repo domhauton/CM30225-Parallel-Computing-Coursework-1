@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <unistd.h>
 #include "matrix/mat.h"
 #include "matrix/mat_factory.h"
@@ -12,22 +11,22 @@ void matrixComputeTest() {
     mat_t *matrix = mat_factory_init_empty(10, 10);
     mat_t *matrix2 = mat_factory_init_empty(10, 10);
     mat_itr_edge_t *matEdgeIterator = mat_itr_edge_create(matrix);
-    while(mat_itr_edge_hasNext(matEdgeIterator)) {
+    while (mat_itr_edge_hasNext(matEdgeIterator)) {
         *mat_itr_edge_next(matEdgeIterator) = 2;
     }
     mat_itr_edge_destroy(matEdgeIterator);
 
     mat_copy_edge(matrix, matrix2);
     mat_print(matrix);
-    bool *overLimit = calloc(false, sizeof(bool));
-    mat_t* res = mat_smooth(matrix, matrix2, 0.000001, overLimit);
+    bool *overLimit = calloc(1, sizeof(bool));
+    mat_t *res = mat_smooth(matrix, matrix2, 0.000001, overLimit);
     free(overLimit);
     printf("\n");
     mat_print(res);
     unsigned long long matPar = mat_parity(matrix);
     printf("Parity 1: %016llx\n", matPar);
     unsigned long long matCRC = mat_crc64(matrix2);
-    printf("Parity 1: %016llx\n", matCRC);
+    printf("CRC64: %016llx\n", matCRC);
 
     mat_destroy(matrix);
     mat_destroy(matrix2);
@@ -80,6 +79,7 @@ void matrixCompareRegeneration(int size) {
 }
 
 void testSpool() {
+    // Enable Debug
     spool_t *spool = spool_init(NULL);
     spool_worker_add(spool);
     spool_worker_add(spool);
@@ -90,9 +90,10 @@ void testSpool() {
 }
 
 void testSplit() {
+    // Enable Debug
     long size = 100;
     mat_t *matrix1 = mat_factory_init_random(size, size);
-    bool *overLimit = calloc(false, sizeof(bool));
+    bool *overLimit = calloc(1, sizeof(bool));
     mat_smthr_list_t *matSmthrList = malloc(sizeof(mat_smthr_list_t));
     mat_smthr_create_inner_cut_even(matrix1, matrix1, 0.001f, overLimit, 5, matSmthrList);
     mat_destroy(matrix1);
@@ -102,17 +103,15 @@ void matSmoothPoolRowCut() {
     mat_t *matrix = mat_factory_init_empty(10, 10);
     mat_t *matrix2 = mat_factory_init_empty(10, 10);
     mat_itr_edge_t *matEdgeIterator = mat_itr_edge_create(matrix);
-    while(mat_itr_edge_hasNext(matEdgeIterator)) {
+    while (mat_itr_edge_hasNext(matEdgeIterator)) {
         *mat_itr_edge_next(matEdgeIterator) = 2;
     }
     mat_itr_edge_destroy(matEdgeIterator);
 
     mat_copy_edge(matrix, matrix2);
-    mat_t* res = mat_smooth_parallel_pool_rowcut(matrix, matrix2, 0.000001, 30, 1);
+    mat_t *res = mat_smooth_parallel_pool_rowcut(matrix, matrix2, 0.000001, 30, 1);
     printf("\n");
     mat_print(res);
-    unsigned long long matPar = mat_parity(matrix);
-    printf("Parity 1: %016llx\n", matPar);
     unsigned long long matCRC = mat_crc64(matrix2);
     printf("Parity 1: %016llx\n", matCRC);
 
@@ -124,10 +123,10 @@ int main(int argc, char *argv[]) {
     if (argc == 6) {
         unsigned int threads = (unsigned int) atoi(argv[1]);
         int size = atoi(argv[2]);
-        int type = atoi(argv[4]);
-        int cut = atoi(argv[5]);
         double precision = strtof(argv[3], NULL);
-        switch(type) {
+        int type = atoi(argv[4]);
+        unsigned int cut = (unsigned int) atoi(argv[5]);
+        switch (type) {
             case 1:
                 bmark_unpooled(size, precision, threads);
                 break;
@@ -146,18 +145,14 @@ int main(int argc, char *argv[]) {
     } else {
         printf("For individual calculations use: %s <threads> <size> <precision> <type> <cut>\n", argv[0]);
         printf("  Ctr   |Ty|Size |Thr|Chnk|  Acc   |  Time  |     Parity     |      CRC64     |\n");
-        double precision = 0.001f;
-        for (unsigned int threads = 1; threads <= (sysconf(_SC_NPROCESSORS_ONLN)*2); threads+=1) {
-            for (int matrixSize = (2 << 9); matrixSize <= (2 << 9); matrixSize <<= 1) {
-//                bmark_serial(matrixSize, precision);
-//                bmark_unpooled(matrixSize, precision, threads);
-//                bmark_barrier_leapfrog(matrixSize, precision, threads);
-//                bmark_barrier_rowcut(matrixSize, precision, threads);
-//                bmark_pool_rowcut(matrixSize, precision, threads, 10);
-//                bmark_pool_rowcut(matrixSize, precision, threads, 20);
-//                bmark_pool_rowcut(matrixSize, precision, threads, 30);
-                bmark_pool_rowcut(matrixSize, precision, threads, 40);
-                bmark_pool_rowcut(matrixSize, precision, threads, 50);
+        double precision = 0.0001f;
+        for (unsigned int threads = 1; threads <= (sysconf(_SC_NPROCESSORS_ONLN) * 2); threads <<= 1) {
+            for (int matrixSize = (2 << 7); matrixSize <= (2 << 10); matrixSize <<= 1) {
+                bmark_serial(matrixSize, precision);
+                bmark_unpooled(matrixSize, precision, threads);
+                bmark_barrier_leapfrog(matrixSize, precision, threads);
+                bmark_barrier_rowcut(matrixSize, precision, threads);
+                bmark_pool_rowcut(matrixSize, precision, threads, 10);
             }
         }
     }

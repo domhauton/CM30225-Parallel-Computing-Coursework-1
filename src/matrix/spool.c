@@ -45,11 +45,7 @@ typedef struct SPOOL_JOB_T {
     spool_job_sync_t *spoolJobSync;
 } spool_job_t;
 
-void spool_job_add(spool_t *spool, mat_smthr_t *smoother, spool_job_sync_t *spoolJobSync) {
-    debug_print("Smoothing Pool\t- DISPATCHER   - Job Add\n");
-    spool_job_t *newSpoolJob = malloc(sizeof(spool_job_t));
-    newSpoolJob->matSmoother = smoother;
-    newSpoolJob->spoolJobSync = spoolJobSync;
+void spool_job_add_inner(spool_t *spool, spool_job_t* newSpoolJob) {
     newSpoolJob->next = NULL;
     pthread_spin_lock(&spool->jobQueueAccessLock);
     if (spool->nextJob == NULL) {
@@ -59,6 +55,14 @@ void spool_job_add(spool_t *spool, mat_smthr_t *smoother, spool_job_sync_t *spoo
     }
     spool->lastJob = newSpoolJob;
     pthread_spin_unlock(&spool->jobQueueAccessLock);
+}
+
+void spool_job_add(spool_t *spool, mat_smthr_t *smoother, spool_job_sync_t *spoolJobSync) {
+    debug_print("Smoothing Pool\t- DISPATCHER   - Job Add\n");
+    spool_job_t *newSpoolJob = malloc(sizeof(spool_job_t));
+    newSpoolJob->matSmoother = smoother;
+    newSpoolJob->spoolJobSync = spoolJobSync;
+    spool_job_add_inner(spool, newSpoolJob);
     sem_post(&spool->jobWaitSem);
 }
 
@@ -105,6 +109,10 @@ spool_job_t *spool_job_next(spool_t *smoothPool) {
 spool_job_t *spool_job_wait(spool_thread_params_t *smoothThread) {
     debug_print("Smoothing Pool\t- Thread %ld - Job Wait\n", syscall(__NR_gettid));
     sem_wait(&smoothThread->smoothPool->jobWaitSem);
+    spool_job_t* skipJob = spool_job_next(smoothThread->smoothPool);
+    if(skipJob != NULL){
+        spool_job_add_inner(smoothThread->smoothPool, skipJob);
+    }
     return spool_job_next(smoothThread->smoothPool);
 }
 

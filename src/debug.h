@@ -10,7 +10,7 @@
 
 #ifndef PARALLEL_COMPUTATION_CW1_DEBUG_H
 #define PARALLEL_COMPUTATION_CW1_DEBUG_H
-#define DEBUG 1
+#define DEBUG 0
 
 #ifdef DEBUG
 #define debug_print(...) \

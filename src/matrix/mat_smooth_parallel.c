@@ -21,7 +21,7 @@ mat_t *mat_smooth_parallel_join(mat_t *source, mat_t *target, double limit, int 
     mat_t *tmp;
     pthread_t threads[threadCount];
     mat_smthr_t *smoothers[threadCount];
-    bool *overLimit = calloc(false, sizeof(bool));
+    bool *overLimit = malloc(sizeof(int));
     do {
         *overLimit = false;
         smoothers[0] = mat_smthr_create_inner(source, target, limit, overLimit);
@@ -93,7 +93,7 @@ mat_t *mat_smooth_parallel_barrier_leapfrog(mat_t *source, mat_t *target, double
         pthread_create(&threads[i], NULL, parallelMutexSmoothHelper, &pArgs[i]);
     }
 
-    bool *overLimit = calloc(false, sizeof(bool));
+    bool *overLimit = malloc(sizeof(int));
 
     do {
         *overLimit = false;
@@ -159,7 +159,7 @@ mat_t *mat_smooth_parallel_barrier_rowcut(mat_t *source,
     pthread_t threads[threadCount];
     pthread_barrier_t *startWorkBarrier = malloc(sizeof(pthread_barrier_t));
     pthread_barrier_t *endWorkBarrier = malloc(sizeof(pthread_barrier_t));
-    bool *overLimit = calloc(false, sizeof(bool));
+    bool *overLimit = malloc(sizeof(int));
     struct parallelArguments pArgs[threadCount];
 
     mat_smthr_t *smootherPtrs[threadCount];
@@ -237,7 +237,7 @@ mat_t *mat_smooth_parallel_pool_rowcut(mat_t *source,
     bool resultFlipped = false;
     long ctr = 0;
     mat_t *tmp;
-    bool *overLimit = malloc(sizeof(bool));
+    bool *overLimit = malloc(sizeof(int));
     spool_t *spool = spool_init(NULL);
 
     for(int i = 0; i < threadCount; i++) {

@@ -16,7 +16,7 @@ double bmark_serial(int size, double precision) {
 
     mat_t *matrix1 = mat_factory_init_random(size, size);
     mat_t *matrix2 = mat_factory_init_random(size, size);
-    bool *overLimit = calloc(false, sizeof(bool));
+    bool *overLimit = malloc(sizeof(int));
     gettimeofday(&tv_start, NULL);
     mat_t *retMat = mat_smooth(matrix1, matrix2, precision, overLimit);
     gettimeofday(&tv_end, NULL);
@@ -50,9 +50,7 @@ double bmark_unpooled(int size, double precision, int threads) {
     unsigned long long parity = mat_parity(retMat);
     unsigned long long crc64 = mat_crc64(retMat);
 
-    int chunks = (size-2) / threads;
-
-    printf("01,%05d,%03d,%04d,%f,%f,%016llx,%016llx\n", size, threads, chunks, precision, time_spent, parity, crc64);
+    printf("01,%05d,%03d,%04d,%f,%f,%016llx,%016llx\n", size, threads, threads, precision, time_spent, parity, crc64);
 
     mat_destroy(matrix1);
     mat_destroy(matrix2);
@@ -109,7 +107,7 @@ double bmark_pool_rowcut(int size, double precision, unsigned int threads, unsig
     mat_t *matrix1 = mat_factory_init_random(size, size);
     mat_t *matrix2 = mat_factory_init_random(size, size);
     gettimeofday(&tv_start, NULL);
-    mat_t *retMat = mat_smooth_parallel_barrier_rowcut(matrix1, matrix2, precision, threads);
+    mat_t *retMat = mat_smooth_parallel_pool_rowcut(matrix1, matrix2, precision, threads, cut);
     gettimeofday(&tv_end, NULL);
 
     double time_spent = (double) (tv_end.tv_usec - tv_start.tv_usec) / 1000000
