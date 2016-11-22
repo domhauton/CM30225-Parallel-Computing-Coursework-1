@@ -1,4 +1,7 @@
+import multiprocessing
 import os
+
+import math
 
 directory = os.path.expanduser('~') + "/jobs"
 
@@ -58,53 +61,22 @@ currentSize = 2048
 jobType = 4
 currentThread = 1
 
-# for jobType in range(1, 5):
-for currentThread in [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 30, 60, 80, 100, 120, 140]:
-    # for currentThread in [2 ** j for j in range(0, int(math.log2(multiprocessing.cpu_count())) + 1)]:
-    # for currentThread in [2 * j for j in range(1, int(multiprocessing.cpu_count() / 2) + 1)]:
-    # for currentSize in [2 ** j for j in range(5, 13)]:
-    job_uid_ctr += 1
-    jobExecutor = get_job_executor(currentThread, currentPrecision, currentSize, jobType, cuts)
-    timeEstimate = get_time_estimate(currentThread, currentPrecision, currentSize, jobType)
-    print(timeEstimate)
-    if timeEstimate > jobQueueMaxTime:
-        write_to_file(jobExecutor, job_uid_ctr)
-    elif timeEstimate + jobQueueTime > jobQueueMaxTime:
-        write_to_file(jobQueue, job_uid_ctr)
-        jobQueue = jobExecutor
-        jobQueueTime = timeEstimate
-    else:
-        jobQueue += jobExecutor
-        jobQueueTime += jobQueueTime  # for currentSize in [2 ** j for j in range(5, 13)]:
-#     job_uid_ctr += 1
-#     jobExecutor = get_job_executor(currentThread, currentPrecision, currentSize, 0, cuts)
-#     timeEstimate = get_time_estimate(currentThread, currentPrecision, currentSize, 0)
-#     print(timeEstimate)
-#     if timeEstimate > jobQueueMaxTime:
-#         write_to_file(jobExecutor, job_uid_ctr)
-#     elif timeEstimate + jobQueueTime > jobQueueMaxTime:
-#         write_to_file(jobQueue, job_uid_ctr)
-#         jobQueue = jobExecutor
-#         jobQueueTime = timeEstimate
-#     else:
-#         jobQueue += jobExecutor
-#         jobQueueTime += jobQueueTime
-
-# for myCuts in [20 * j for j in range(1, 10)]:
-#     for currentThread in [1, 12, 24, 48, 96]:
-#         job_uid_ctr += 1
-#         jobExecutor = get_job_executor(currentThread, currentPrecision, 1024, 4, myCuts)
-#         timeEstimate = get_time_estimate(currentThread, currentPrecision, 1024, 4)
-#         print(timeEstimate)
-#         if timeEstimate > jobQueueMaxTime:
-#             write_to_file(jobExecutor, job_uid_ctr)
-#         elif timeEstimate + jobQueueTime > jobQueueMaxTime:
-#             write_to_file(jobQueue, job_uid_ctr)
-#             jobQueue = jobExecutor
-#             jobQueueTime = timeEstimate
-#         else:
-#             jobQueue += jobExecutor
-#             jobQueueTime += jobQueueTime
+for jobType in range(1, 5):
+    for currentThread in [2 ** j for j in range(0, int(math.log2(multiprocessing.cpu_count())) + 1)]:
+        for currentSize in [2 ** j for j in range(5, 13)]:
+            job_uid_ctr += 1
+            jobExecutor = get_job_executor(currentThread, currentPrecision, currentSize, jobType, cuts)
+            timeEstimate = get_time_estimate(currentThread, currentPrecision, currentSize, jobType)
+            print(timeEstimate)
+            if timeEstimate > jobQueueMaxTime:
+                write_to_file(jobExecutor, job_uid_ctr)
+            elif timeEstimate + jobQueueTime > jobQueueMaxTime:
+                write_to_file(jobQueue, job_uid_ctr)
+                jobQueue = jobExecutor
+                jobQueueTime = timeEstimate
+            else:
+                jobQueue += jobExecutor
+                jobQueueTime += jobQueueTime
 
 if len(jobQueue) > 0:
     job_uid_ctr += 1

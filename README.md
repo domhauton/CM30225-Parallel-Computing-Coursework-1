@@ -11,7 +11,8 @@ Scripts to run the coursework on Balena are available in *bin* in the submitted 
 - Running the python script with python3 will produce jobs for Balena in batches of 15 mins. 
 - **cw-status.sh** Will display job status.
 - **cw-collect-results.sh** will process the output of Balena and can be pasted directly into Google Sheets for analysis.
-\section{Code Structure}
+
+# Code Structure
 The code is separated into multiple files and uses pointer obfuscation, to structure the program.
 - *mat.c* and the *mat_t* is the core of the code and represents the matrix that will be relaxed.
 - *mat.c* holds helper functions that operate on mat_t} and also contains the sequential version of the smoothing algorithm.\par
@@ -20,3 +21,6 @@ The code is separated into multiple files and uses pointer obfuscation, to struc
 - A smoother is provided. This is a key part of the program. It is made up of 6 iterators, 5 in a cross pattern iterating through the source matrix and a final iterator going through the target matrix that smoothed values will be put in. The central iterator is there to check the difference between the new smoothed value and the old value. If this is more than the diff given the smoother can now ignore the extra subtraction and does not need to iterate the central pointer, saving CPU cycles. As it uses iterators, a smoother can also be split recursively.
 - matrix_smooth_parallel.c contains all the methods of parallelism and synchronisation used.
 - *spool.c* (smoothing pool) is a thread pool used as the final method of parallelism;
+
+# Speedup
+![Speedup Graph](http://i.imgur.com/0R0xq9C.png)
