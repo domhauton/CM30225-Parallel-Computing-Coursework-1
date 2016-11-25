@@ -23,4 +23,5 @@ The code is separated into multiple files and uses pointer obfuscation, to struc
 - *spool.c* (smoothing pool) is a thread pool used as the final method of parallelism;
 
 # Speedup
+On a 2x8 core machine
 ![Speedup Graph](http://i.imgur.com/0R0xq9C.png)
