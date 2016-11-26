@@ -1,6 +1,8 @@
 # CM30225-Parallel-Computing-Coursework-1
 http://people.bath.ac.uk/masrjb/CourseNotes/cm30225.html
 
+Speedup: **14.8** on 16 core node
+
 # Grade
 Unknown
 
@@ -24,4 +26,5 @@ The code is separated into multiple files and uses pointer obfuscation, to struc
 
 # Speedup
 On a 2x8 core machine
+Maximum speed up tested: **14.8** - Row Size **20** - threads **20** - size **8192** - type **(4) Pool Row Cut Jump**
 ![Speedup Graph](http://i.imgur.com/0R0xq9C.png)
